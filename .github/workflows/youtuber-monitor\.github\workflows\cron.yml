@@ -21,6 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Write yt-dlp cookies file
+        if: secrets.YTDLP_COOKIES_B64 != ''
+        run: |
+          echo "${{ secrets.YTDLP_COOKIES_B64 }}" | base64 -d > cookies.txt
+
+      - name: Debug cookies file
+        run: |
+          echo "=== Listing working directory ==="
+          ls -la
+          echo "=== cookies.txt preview (first 20 lines) ==="
+          if [ -f cookies.txt ]; then head -n 20 cookies.txt || true; else echo "cookies.txt not found"; fi
+
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
@@ -34,6 +46,16 @@ jobs:
 
       - name: Run monitor
         run: python main.py
+
+      - name: Upload debug artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: debug-artifacts
+          path: |
+            downloads/**
+            *_report.md
+            cookies.txt
 
       - name: Commit last_video_id back (optional)
         if: always()
