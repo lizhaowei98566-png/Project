@@ -22,7 +22,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Write yt-dlp cookies file
-        if: secrets.YTDLP_COOKIES_B64 != ''
         run: |
           echo "${{ secrets.YTDLP_COOKIES_B64 }}" | base64 -d > cookies.txt
 
