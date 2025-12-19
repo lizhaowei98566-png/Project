@@ -1,0 +1,60 @@
+name: youtuber-monitor-cron
+
+permissions:
+  contents: write
+
+on:
+  schedule:
+    - cron: '0 * * * *' # 每小时运行一次
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      MAIL_USER: ${{ secrets.MAIL_USER }}
+      MAIL_PASS: ${{ secrets.MAIL_PASS }}
+      TARGET_MAIL: ${{ secrets.TARGET_MAIL }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+      # 可选：YTDLP_COOKIES_B64 应已在 Secrets 中配置
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write yt-dlp cookies file
+        if: secrets.YTDLP_COOKIES_B64 != ''
+        run: |
+          echo "${{ secrets.YTDLP_COOKIES_B64 }}" | base64 -d > cookies.txt
+
+      - name: Debug cookies file
+        run: |
+          echo "=== Listing working directory ==="
+          ls -la
+          echo "=== cookies.txt preview (first 20 lines) ==="
+          if [ -f cookies.txt ]; then head -n 20 cookies.txt || true; else echo "cookies.txt not found"; fi
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Run monitor
+        run: python main.py
+
+      - name: Commit last_video_id back (optional)
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add last_video_id.txt || true
+          git commit -m "Update last_video_id from workflow" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
