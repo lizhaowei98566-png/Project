@@ -1,0 +1,5 @@
+feedparser
+yt-dlp
+google-generativeai
+openai-whisper
+opencc-python-reimplemented
